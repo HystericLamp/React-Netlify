@@ -1,4 +1,4 @@
-# React-Netlify
+# React-TypeScript-Pages
 
 Getting Started
 - Ran "npm create vite@latest my-landing --template react"

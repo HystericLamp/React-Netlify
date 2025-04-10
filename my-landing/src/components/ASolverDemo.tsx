@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { calculatePath, isAdjacent, swapTiles,  } from "../utils/AStarSolverUtils";
 /**
  * This component builds a 3x3 grid that simulates an interactive sliding puzzle
  * User can move tiles around and randomize tile locations
@@ -6,42 +7,35 @@ import React, { useState } from "react";
  */
 
 const initialTiles: (number | null)[] = [1, 2, 3, 4, 5, 6, 7, 8, null];
-const gridSize = 3;
 
 const ASolverDemo: React.FC = () => {
     const [tiles, setTiles] = useState<(number | null)[]>(initialTiles);
-
+    const [solutionPath, setSolutionPath] = useState<string[]>([]);
+    
     const handleClick = (index: number) => {
-        // Swaps tile if empty
+        // Swaps tile if there is an empty slot
         const emptyIndex = tiles.indexOf(null);
         if (!isAdjacent(index, emptyIndex)) return;
-    
-        const newTiles = [...tiles];
-        [newTiles[index], newTiles[emptyIndex]] = [newTiles[emptyIndex], newTiles[index]];
+
+        const newTiles = swapTiles(tiles, emptyIndex, index);
         setTiles(newTiles);
-    };
-    
-    const isAdjacent = (index: number, empty: number): boolean => {
-        const x1 = index % gridSize;
-        const y1 = Math.floor(index / gridSize);
-        const x2 = empty % gridSize;
-        const y2 = Math.floor(empty / gridSize);
-    
-        const dx = Math.abs(x1 - x2);
-        const dy = Math.abs(y1 - y2);
-    
-        return (dx + dy === 1);
     };
 
     const shuffleTiles = () => {
+        // Shuffles all tiles
         const shuffledTiles = [...initialTiles];
         for (let i = shuffledTiles.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1)); 
-            [shuffledTiles[i], shuffledTiles[j]] = [shuffledTiles[j], shuffledTiles[i]]; // Swap
+            [shuffledTiles[i], shuffledTiles[j]] = [shuffledTiles[j], shuffledTiles[i]];
         }
 
         setTiles(shuffledTiles);
     };
+
+    const solvePuzzle = () => {
+        const solvedPath = calculatePath(tiles)
+        setSolutionPath(solvedPath);
+    }
 
     return (
         <div className="flex flex-col items-center mt-10">
@@ -65,6 +59,21 @@ const ASolverDemo: React.FC = () => {
             >
                 Shuffle
             </button>
+
+            <button
+                onClick={solvePuzzle}
+                className="mb-4 px-4 py-2 bg-red-500 text-white rounded"
+            >
+                Solve
+            </button>
+
+            {solutionPath.length > 0 && (
+                <div className="mt-4">
+                    <h2 className="text-lg font-bold mb-2">Move Directions:</h2>
+                    <p>{solutionPath.join(" → ")}</p>
+                </div>
+            )}
+
         </div>
     );
 };

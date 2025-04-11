@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { calculatePath, isAdjacent, swapTiles,  } from "../utils/AStarSolverUtils";
+import { calculatePath, isAdjacent, swapTiles, Move } from "../utils/AStarSolverUtils";
 /**
  * This component builds a 3x3 grid that simulates an interactive sliding puzzle
  * User can move tiles around and randomize tile locations
@@ -11,8 +11,11 @@ const initialTiles: (number | null)[] = [1, 2, 3, 4, 5, 6, 7, 8, null];
 const ASolverDemo: React.FC = () => {
     const [tiles, setTiles] = useState<(number | null)[]>(initialTiles);
     const [solutionPath, setSolutionPath] = useState<string[]>([]);
+    const [isAnimating, setIsAnimating] = useState(false);
     
     const handleClick = (index: number) => {
+        if (isAnimating) return;
+
         // Swaps tile if there is an empty slot
         const emptyIndex = tiles.indexOf(null);
         if (!isAdjacent(index, emptyIndex)) return;
@@ -32,21 +35,45 @@ const ASolverDemo: React.FC = () => {
         setTiles(shuffledTiles);
     };
 
+    const animateSolutionFromPath = async (path: Move[]) => {
+        setIsAnimating(true);
+        
+        let currentTiles = [...tiles];
+        for (const move of path) {
+            const emptyIndex = currentTiles.indexOf(null);
+            let targetIndex = emptyIndex;
+    
+            if (move === "Up") targetIndex = emptyIndex - 3;
+            if (move === "Down") targetIndex = emptyIndex + 3;
+            if (move === "Left") targetIndex = emptyIndex - 1;
+            if (move === "Right") targetIndex = emptyIndex + 1;
+    
+            currentTiles = swapTiles(currentTiles, emptyIndex, targetIndex);
+            setTiles([...currentTiles]);
+            await new Promise(res => setTimeout(res, 400));
+        }
+
+        setIsAnimating(false);
+    };
+    
+
     const solvePuzzle = () => {
         const solvedPath = calculatePath(tiles)
         setSolutionPath(solvedPath);
-    }
-
+        animateSolutionFromPath(solvedPath)
+    };
+    
     return (
         <div className="flex flex-col items-center mt-10">
-            <div className="grid grid-cols-3 gap-1 mb-10">
-                {tiles.map((tile, i) => (
+            <div className="grid grid-cols-3 gap-1 mb-10 relative">
+                {tiles.map((tile, index) => (
                     <div
-                    key={i}
-                    onClick={() => handleClick(i)}
+                    key={index}
+                    onClick={() => handleClick(index)}
                     className={`
                         w-20 h-20 border flex items-center justify-center text-xl font-bold rounded
-                        ${tile === null ? 'bg-white' : 'bg-blue-400 text-white'}
+                        ${tile === null ? 'bg-gray-300' : 'bg-white'}
+                        ${!isAnimating && isAdjacent(index, tiles.indexOf(null)) ? 'hover:bg-blue-100 cursor-pointer' : 'cursor-default'}
                     `}
                     >
                         {tile ?? ''}
@@ -62,7 +89,9 @@ const ASolverDemo: React.FC = () => {
 
             <button
                 onClick={solvePuzzle}
-                className="mb-4 px-4 py-2 bg-red-500 text-white rounded"
+                disabled={isAnimating}
+                className={`bg-red-500 text-white px-4 py-2 rounded transition 
+                    ${isAnimating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
             >
                 Solve
             </button>

@@ -1,4 +1,4 @@
-import { calculatePath, manhattanDistance } from "../AStarSolverUtils";
+import { calculatePath, manhattanDistance } from "../aStarSolverUtils";
 
 describe('manhattanDistance', () => {
     it('returns 0 for solved puzzle', () => {

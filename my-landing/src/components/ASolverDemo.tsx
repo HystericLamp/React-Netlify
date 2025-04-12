@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import { isAdjacent, swapTiles, Move } from "../utils/AStarSolverUtils";
+import { isAdjacent, swapTiles, Move } from "../utils/aStarSolverUtils";
 import SolverWorker from '../utils/solverWorker?worker';
 
 /**

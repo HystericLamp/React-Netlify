@@ -126,11 +126,7 @@ export function calculatePath(currentTileState: (number | null)[]): Move[] {
         }
     }
 
-    // If no solution is found, push a "Nill"
-    // We can check for this later
-    const failedPath: Move[] = [];
-    failedPath.push("Nill")
-    return failedPath
+    return ["Nill"];
 };
 
 export const isAdjacent = (index: number, empty: number): boolean => {

@@ -7,7 +7,7 @@ import ASolverDemo from './components/ASolverDemo';
 
 const App: React.FC = () => {
   return (
-    <div className="min-h-screen">
+    <div className="light-background dark:dark-background">
       <Header />
       <Introduction />
       <ProjectGrid />

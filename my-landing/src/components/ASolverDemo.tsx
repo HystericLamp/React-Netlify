@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import { calculatePath, isAdjacent, swapTiles, Move } from "../utils/AStarSolverUtils";
+import { isAdjacent, swapTiles, Move } from "../utils/AStarSolverUtils";
+import SolverWorker from '../utils/solverWorker?worker';
+
 /**
  * This component builds a 3x3 grid that simulates an interactive sliding puzzle
  * User can move tiles around and randomize tile locations
@@ -12,6 +15,12 @@ const ASolverDemo: React.FC = () => {
     const [tiles, setTiles] = useState<(number | null)[]>(initialTiles);
     const [solutionPath, setSolutionPath] = useState<string[]>([]);
     const [isAnimating, setIsAnimating] = useState(false);
+    const [isSolving, setIsSolving] = useState(false);
+
+    const resetPuzzle = () => {
+        setTiles(initialTiles)
+        setSolutionPath([])
+    }
     
     const handleClick = (index: number) => {
         if (isAnimating) return;
@@ -55,55 +64,115 @@ const ASolverDemo: React.FC = () => {
 
         setIsAnimating(false);
     };
-    
 
     const solvePuzzle = () => {
-        const solvedPath = calculatePath(tiles)
-        setSolutionPath(solvedPath);
-        animateSolutionFromPath(solvedPath)
+        const worker = new SolverWorker();
+
+        setIsSolving(true);
+        setSolutionPath([]);
+
+        worker.postMessage({ tiles });
+
+        worker.onmessage = (event: MessageEvent<Move[]>) => {
+            const solvedPath = event.data;
+            setSolutionPath(solvedPath);
+            animateSolutionFromPath(solvedPath);
+            setIsSolving(false);
+            worker.terminate();
+        };
+
+        worker.onerror = (error: any) => {
+            console.error("Worker error:", error);
+            setIsSolving(false);
+            setSolutionPath(["Nill"]);
+            worker.terminate();
+        };
     };
     
     return (
-        <div className="flex flex-col items-center mt-10">
-            <div className="grid grid-cols-3 gap-1 mb-10 relative">
-                {tiles.map((tile, index) => (
-                    <div
-                    key={index}
-                    onClick={() => handleClick(index)}
-                    className={`
-                        w-20 h-20 border flex items-center justify-center text-xl font-bold rounded
-                        ${tile === null ? 'bg-gray-300' : 'bg-white'}
-                        ${!isAnimating && isAdjacent(index, tiles.indexOf(null)) ? 'hover:bg-blue-100 cursor-pointer' : 'cursor-default'}
-                    `}
-                    >
-                        {tile ?? ''}
-                    </div>
-                ))}
-            </div>
-            <button
-                onClick={shuffleTiles}
-                className="mb-4 px-4 py-2 bg-green-500 text-white rounded"
-            >
-                Shuffle
-            </button>
+        <section className="text-center">
+            <div className="max-w-screen-lg mx-auto">
+                <h2 className="text-4xl font-semibold mb-8 gradient-light-text dark:gradient-dark-text">
+                    Interactive Demo
+                </h2>
 
-            <button
-                onClick={solvePuzzle}
-                disabled={isAnimating}
-                className={`bg-red-500 text-white px-4 py-2 rounded transition 
-                    ${isAnimating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
-            >
-                Solve
-            </button>
+                <p className="text-xl">
+                    This demo showcases the A* Solver algorithm by trying to solve a sliding-puzzle problem.
+                    The tiles move around so long as there is an empty slot nearby.
+                    You can "shuffle" the puzzle or get the algorithm to "solve" it for you.
+                    <br/>
+                    <span className="font-bold text-indigo-700 dark:text-yellow-200">Keep in mind</span>: Sometimes the puzzle is un-solvable 
+                </p>
+            </div>
+            
+            <div className="flex flex-col items-center mt-10">
+                <div className="grid grid-cols-3 gap-1 mb-10">
+                    {tiles.map((tile, index) => (
+                        <div
+                            key={index}
+                            onClick={() => handleClick(index)}
+                            className={`
+                                w-20 h-20 flex items-center justify-center text-xl font-bold rounded
+                                ${tile === null ? 
+                                    'bg-white dark:bg-indigo-800/80' : 
+                                    'bg-white dark:bg-indigo-800/80'
+                                }
+                                ${!isAnimating && !isSolving && isAdjacent(index, tiles.indexOf(null)) ? 
+                                    'hover:scale-105 hover:shadow-lg cursor-pointer' : 
+                                    'cursor-default'
+                                }
+                            `}
+                        >
+                            {tile ?? ''}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="items-center space-x-4">
+                <button
+                    onClick={resetPuzzle}
+                    disabled={isAnimating || isSolving}
+                    className="button-light-hollow dark:button-dark-hollow"
+                >
+                    Reset
+                </button>
+
+                <button
+                    onClick={shuffleTiles}
+                    disabled={isAnimating || isSolving}
+                    className="button-light-hollow dark:button-dark-hollow"
+                >
+                    Shuffle
+                </button>
+
+                <button
+                    onClick={solvePuzzle}
+                    disabled={isAnimating || isSolving}
+                    className={`button-light-gradient-filled dark:button-dark-gradient-filled
+                        ${isAnimating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
+                >
+                    Solve
+                </button>
+            </div>
+
+            {isSolving && <p className="mt-2">Resolving path...</p>}
 
             {solutionPath.length > 0 && (
                 <div className="mt-4">
-                    <h2 className="text-lg font-bold mb-2">Move Directions:</h2>
-                    <p>{solutionPath.join(" → ")}</p>
-                </div>
+                {solutionPath[0] === "Nill" ? (
+                    <p>Unsolvable puzzle</p>
+                ) : (
+                    <>
+                        <h2 className="text-lg font-bold mb-2 gradient-light-text dark:gradient-dark-text">Move Directions:</h2>
+                        <p>{solutionPath.join(" → ")}</p>
+                    </>
+                )}
+              </div>
             )}
 
-        </div>
+                
+        </section>
     );
 };
 
